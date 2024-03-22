@@ -1,54 +1,76 @@
-const { MongoClient } = require("mongodb");
-
-// The uri string must be the connection string for the database (obtained on Atlas).
-const uri = "mongodb+srv://ml:68RrzjSSGJzyVgGi@cluster0.ef6txkd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// --- This is the standard stuff to get it to work on the browser
 const express = require('express');
+const cookieParser = require('cookie-parser');
+const { MongoClient } = require('mongodb');
+
 const app = express();
 const port = 3000;
+
 app.listen(port);
 console.log('Server started at http://localhost:' + port);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// routes will go here
+const uri = "mongodb+srv://ml:68RrzjSSGJzyVgGi@cluster0.ef6txkd.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 
-// Default route:
-app.get('/', function(req, res) {
-  res.send('Starting... ');
-});
-
-app.get('/say/:name', function(req, res) {
-  res.send('Hello ' + req.params.name + '!');
-});
-
-
-// Route to access database:
-app.get('/api/mongo/:item', function(req, res) {
 const client = new MongoClient(uri);
-const searchKey = "{ partID: '" + req.params.item + "' }";
-console.log("Looking for: " + searchKey);
 
-async function run() {
-  try {
+// Default endpoint
+app.get('/', (req, res) => {
+    if (req.cookies.auth) {
+        res.send(`Authentication cookie exists with value: ${req.cookies.auth}<br><a href="/cookies">View Cookies</a> | <a href="/clear-cookie">Clear Cookie</a>`);
+    } else {
+        res.send('<a href="/login">Login</a> | <a href="/register">Register</a>');
+    }
+});
+
+// Login endpoint
+app.get('/login', (req, res) => {
+    res.send(`<form method="post" action="/login">\
+                <input type="text" name="user_ID" placeholder="User ID"><br>\
+                <input type="password" name="password" placeholder="Password"><br>\
+                <input type="submit" value="Login">\
+              </form>`);
+});
+
+app.post('/login', async (req, res) => {
+    const { user_ID, password } = req.body;
     const database = client.db('MyDBexample');
-    const parts = database.collection('MyStuff');
+    const users = database.collection('Users');
+    const user = await users.findOne({ user_ID, password });
+    if (user) {
+        res.cookie('auth', 'authenticated', { maxAge: 60000 });
+        res.redirect('/');
+    } else {
+        res.send('Invalid user credentials. <a href="/">Go back to homepage</a>');
+    }
+});
 
-    // Hardwired Query for a part that has partID '12345'
-    // const query = { partID: '12345' };
-    // But we will use the parameter provided with the route
-    const query = { partID: req.params.item };
+// Register endpoint
+app.get('/register', (req, res) => {
+    res.send(`<form method="post" action="/register">\
+                <input type="text" name="user_ID" placeholder="User ID"><br>\
+                <input type="password" name="password" placeholder="Password"><br>\
+                <input type="submit" value="Register">\
+              </form>`);
+});
 
-    const part = await parts.findOne(query);
-    console.log(part);
-    res.send('Found this: ' + JSON.stringify(part));  //Use stringify to print a json
+app.post('/register', async (req, res) => {
+    const { user_ID, password } = req.body;
+    const database = client.db('MyDBexample');
+    const users = database.collection('Users');
+    await users.insertOne({ user_ID, password });
+    res.send('User registered successfully. <a href="/">Go back to homepage</a>');
+});
 
-  } finally {
-    // Ensures that the client will close when you finish/error
-    await client.close();
-  }
-}
-run().catch(console.dir);
+// View Cookies endpoint
+app.get('/cookies', (req, res) => {
+    res.send(`Active cookies: ${JSON.stringify(req.cookies)}<br><a href="/">Go back to homepage</a>`);
+});
+
+// Clear Cookie endpoint
+app.get('/clear-cookie', (req, res) => {
+    res.clearCookie('auth');
+    res.send('Cookie cleared successfully. <a href="/">Go back to homepage</a>');
 });
