@@ -37,7 +37,7 @@ app.get('/login', (req, res) => {
 app.post('/login', async (req, res) => {
     const { user_ID, password } = req.body;
     const database = client.db('MyDBexample');
-    const users = database.collection('Users');
+    const users = database.collection('MyStuff');
     const user = await users.findOne({ user_ID, password });
     if (user) {
         res.cookie('auth', 'authenticated', { maxAge: 60000 });
@@ -59,18 +59,18 @@ app.get('/register', (req, res) => {
 app.post('/register', async (req, res) => {
     const { user_ID, password } = req.body;
     const database = client.db('MyDBexample');
-    const users = database.collection('Users');
+    const users = database.collection('MyStuff');
     await users.insertOne({ user_ID, password });
     res.send('User registered successfully. <a href="/">Go back to homepage</a>');
 });
 
 // View Cookies endpoint
 app.get('/cookies', (req, res) => {
-    res.send(`Active cookies: ${JSON.stringify(req.cookies)}<br><a href="/">Go back to homepage</a>`);
+    res.send(`Here Are The Active cookies: ${JSON.stringify(req.cookies)}<br><a href="/">Head back to the homepage</a>`);
 });
 
 // Clear Cookie endpoint
 app.get('/clear-cookie', (req, res) => {
     res.clearCookie('auth');
-    res.send('Cookie cleared successfully. <a href="/">Go back to homepage</a>');
+    res.send('All Cookies Were cleared successfully! <a href="/">Head back to the homepage</a>');
 });
