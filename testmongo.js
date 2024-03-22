@@ -59,7 +59,7 @@ app.get('/register', (req, res) => {
 app.post('/register', async (req, res) => {
     const { user_ID, password } = req.body;
     const database = client.db('MyDBexample');
-    const users = database.collection('MyStuff');
+    const users = database.collection('Users');
     await users.insertOne({ user_ID, password });
     res.send('User registered successfully. <a href="/">Go back to homepage</a>');
 });
